@@ -1,388 +1,367 @@
+javascript
 // Inisialisasi Supabase
 const supabase = Supabase.createClient('https://lahzymgcaeuvwshdeqtc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTI5Njk4OCwiZXhwIjoyMDY0ODcyOTg4fQ._bMxdtM3i3c7N6JYjMb7nLd09AgOwo-0H0xf1LnNZjw');
 
-let username;
+// Variabel global untuk menyimpan state
 let currentUser;
-let rundownSuggestions = []; // Menyimpan saran rundown
 
+// --- UTILITY FUNCTIONS ---
 function sendToWhatsApp(content) {
     const phoneNumber = "628994108524"; // Ganti dengan nomor Anda
     const encodedMessage = encodeURIComponent(content);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
 }
 
+function formatRupiah(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+function parseRupiah(value) {
+    if (!value) return 0;
+    return parseInt(String(value).replace(/\D/g, '') || '0');
+}
+
+// --- AUTHENTICATION ---
+async function handleLogin(e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('username').value;
+    const passwordInput = document.getElementById('password').value;
+
+    // Ambil data user dari Supabase berdasarkan username
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', usernameInput)
+        .single(); // .single() untuk mendapatkan satu record atau null
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = baris tidak ditemukan, itu bukan error
+        alert('Error logging in: ' + error.message);
+        return;
+    }
+
+    // Cek apakah user ditemukan dan password cocok
+    if (user && user.password === passwordInput) {
+        currentUser = user.username;
+        document.getElementById('loginSection').classList.add('opacity-0', 'pointer-events-none');
+        document.getElementById('mainContent').classList.remove('hidden');
+        
+        // Muat semua data setelah login berhasil
+        loadAllData();
+    } else {
+        alert('Invalid username or password. Please try again.');
+    }
+}
+
+function handleLogout() {
+    currentUser = null;
+    document.getElementById('loginSection').classList.remove('opacity-0', 'pointer-events-none');
+    document.getElementById('mainContent').classList.add('hidden');
+    document.getElementById('loginForm').reset();
+}
+
+async function loadAllData() {
+    // Render semua data dari Supabase secara bersamaan
+    await Promise.all([
+        renderDestinations(),
+        renderTimeline(),
+        renderDresscode(),
+        renderGallery(),
+        renderFinanceData()
+    ]);
+    // Tampilkan section default (misalnya, Destinations)
+    showSection('destinationsSection');
+}
+
+
+// --- DYNAMIC CONTENT RENDERING ---
+
+// Destinations
+async function renderDestinations() {
+    const { data, error } = await supabase.from('destinations').select('*').order('created_at', { ascending: true });
+    if (error) return alert('Error fetching destinations: ' + error.message);
+
+    const list = document.getElementById('destinationsList');
+    list.innerHTML = '';
+    data.forEach(dest => {
+        const item = document.createElement('div');
+        item.className = 'card bg-white rounded-lg overflow-hidden';
+        item.innerHTML = `
+            <div class="p-4 pb-3">
+                <div class="flex items-center mb-2">
+                    <i class="fas fa-map-marker-alt text-rose-500 mr-2"></i>
+                    <h4 class="font-medium text-gray-800">${dest.name}</h4>
+                </div>
+                <p class="text-gray-600 text-sm">${dest.location}</p>
+            </div>
+            <div class="px-4 pb-3 pt-0 flex justify-end">
+                <button class="delete-btn text-rose-600 hover:text-rose-800 text-sm" data-id="${dest.id}" data-table="destinations">
+                    <i class="fas fa-trash-alt mr-1"></i> Remove
+                </button>
+            </div>`;
+        list.appendChild(item);
+    });
+}
+
+async function addDestination() {
+    const name = document.getElementById('destinationName').value;
+    const location = document.getElementById('destinationLocation').value;
+    if (!name.trim() || !location.trim()) return alert('Please fill in both name and location');
+
+    const { error } = await supabase.from('destinations').insert([{ name, location }]);
+    if (error) return alert('Error adding destination: ' + error.message);
+    
+    document.getElementById('destinationName').value = '';
+    document.getElementById('destinationLocation').value = '';
+    await renderDestinations();
+    sendToWhatsApp(`*NEW DESTINATION SUGGESTION*\n\n*Name:* ${name}\n*Location:* ${location}\n\nFrom: ${currentUser}`);
+}
+
+// Rundown
+async function renderTimeline() {
+    const { data, error } = await supabase.from('rundown').select('*').order('time', { ascending: true });
+    if (error) return alert('Error fetching rundown: ' + error.message);
+
+    const timeline = document.getElementById('timeline');
+    timeline.innerHTML = '';
+    data.forEach(item => {
+        const newItem = document.createElement('div');
+        newItem.className = 'timeline-item relative pb-6';
+        newItem.innerHTML = `
+            <div class="bg-rose-50 p-4 rounded-lg relative">
+                <div class="flex justify-between items-start mb-1">
+                    <h4 class="font-medium text-gray-800">${item.time}</h4>
+                    ${item.isSuggestion ? `<span class="text-xs text-rose-500">Suggestion by ${item.user}</span>` : ''}
+                </div>
+                <p class="text-gray-600">${item.activity}</p>
+                <button class="delete-btn absolute top-2 right-2 text-rose-400 hover:text-rose-600" data-id="${item.id}" data-table="rundown">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>`;
+        timeline.appendChild(newItem);
+    });
+}
+
+async function addRundownSuggestion() {
+    const time = document.getElementById('rundownTime').value;
+    const activity = document.getElementById('rundownActivity').value;
+    if (!time || !activity) return alert('Please fill both time and activity');
+
+    const { error } = await supabase.from('rundown').insert([{ time, activity, isSuggestion: true, user: currentUser }]);
+    if (error) return alert('Error adding rundown suggestion: ' + error.message);
+    
+    await renderTimeline();
+    sendToWhatsApp(`*NEW RUNDOWN SUGGESTION*\n\n*Time:* ${time}\n*Activity:* ${activity}\n\nFrom: ${currentUser}`);
+    document.getElementById('rundownTime').value = '';
+    document.getElementById('rundownActivity').value = '';
+}
+
+// Dresscode
+async function renderDresscode() {
+    const { data, error } = await supabase.from('dresscode_rules').select('*').order('created_at', { ascending: true });
+    if (error) return alert('Error fetching dresscode: ' + error.message);
+    
+    const list = document.getElementById('dresscodeList');
+    list.innerHTML = '';
+    data.forEach(rule => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between bg-rose-50 p-4 rounded-lg';
+        item.innerHTML = `
+            <p class="text-gray-700">${rule.rule}</p>
+            <button class="delete-btn text-rose-500 hover:text-rose-700" data-id="${rule.id}" data-table="dresscode_rules">
+                <i class="fas fa-trash-alt"></i>
+            </button>`;
+        list.appendChild(item);
+    });
+}
+
+async function addDresscode() {
+    const rule = document.getElementById('dresscodeRule').value;
+    if (!rule.trim()) return alert('Please enter a dresscode rule.');
+    
+    const { error } = await supabase.from('dresscode_rules').insert([{ rule }]);
+    if (error) return alert('Error adding dresscode: ' + error.message);
+    
+    document.getElementById('dresscodeRule').value = '';
+    await renderDresscode();
+}
+
+// Gallery
+async function renderGallery() {
+    const { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
+    if (error) return alert('Error fetching gallery: ' + error.message);
+
+    const container = document.getElementById('galleryContainer');
+    container.innerHTML = '';
+    data.forEach(image => {
+        const item = document.createElement('div');
+        item.className = 'relative group';
+        item.innerHTML = `
+            <img src="${image.image_url}" alt="Gallery image" class="w-full h-full object-cover rounded-lg shadow-md">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="delete-btn text-white text-2xl" data-id="${image.id}" data-table="gallery">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>`;
+        container.appendChild(item);
+    });
+}
+
+async function addImage() {
+    const imageUrl = document.getElementById('imageUrl').value;
+    if (!imageUrl.trim()) return alert('Please enter an image URL.');
+    
+    const { error } = await supabase.from('gallery').insert([{ image_url: imageUrl }]);
+    if (error) return alert('Error adding image: ' + error.message);
+
+    document.getElementById('imageUrl').value = '';
+    await renderGallery();
+}
+
+// Finance
+async function renderFinanceData() {
+    if (!currentUser) return;
+    const { data: budgets, error: budgetsError } = await supabase.from('budgets').select('*').eq('user', currentUser);
+    const { data: expenses, error: expensesError } = await supabase.from('expenses').select('*').eq('user', currentUser);
+
+    if (budgetsError || expensesError) return alert('Error fetching finance data.');
+
+    const totalBudget = budgets.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+
+    document.getElementById('plannedBudget').textContent = formatRupiah(totalBudget);
+    document.getElementById('actualSpent').textContent = formatRupiah(totalExpense);
+    document.getElementById('remainingBudget').textContent = formatRupiah(totalBudget - totalExpense);
+
+    const tableBody = document.getElementById('financeTableBody');
+    tableBody.innerHTML = '';
+    const categories = [...new Set([...budgets.map(b => b.category), ...expenses.map(e => e.category)])];
+
+    categories.forEach(category => {
+        const catBudget = budgets.filter(b => b.category === category).reduce((s, i) => s + i.amount, 0);
+        const catExpense = expenses.filter(e => e.category === category).reduce((s, i) => s + i.amount, 0);
+        const difference = catBudget - catExpense;
+        const percentage = catBudget > 0 ? (catExpense / catBudget * 100).toFixed(1) : 0;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="px-4 py-3 text-sm text-gray-700 capitalize">${category}</td>
+            <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catBudget)}</td>
+            <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catExpense)}</td>
+            <td class="px-4 py-3 text-sm text-right ${difference >= 0 ? 'text-green-600' : 'text-red-600'}">${formatRupiah(difference)}</td>
+            <td class="px-4 py-3 text-sm text-right text-gray-700">${percentage}%</td>`;
+        tableBody.appendChild(row);
+    });
+}
+
+async function addBudget() {
+    const category = document.getElementById('financeCategory').value;
+    const amount = parseRupiah(document.getElementById('plannedAmount').value);
+    if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount');
+    
+    const { error } = await supabase.from('budgets').insert([{ category, amount, user: currentUser }]);
+    if (error) return alert('Error adding budget: ' + error.message);
+    
+    document.getElementById('plannedAmount').value = '';
+    await renderFinanceData();
+}
+
+async function addExpense() {
+    const date = document.getElementById('expenseDate').value;
+    const category = document.getElementById('expenseCategory').value;
+    const amount = parseRupiah(document.getElementById('expenseAmount').value);
+    const description = document.getElementById('expenseDescription').value;
+
+    if (!date || isNaN(amount) || amount <= 0 || !description) return alert('Please fill all fields with valid values');
+    
+    const { error } = await supabase.from('expenses').insert([{ date, category, amount, description, user: currentUser }]);
+    if (error) return alert('Error adding expense: ' + error.message);
+
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseDescription').value = '';
+    await renderFinanceData();
+}
+
+// Generic Delete Function
+async function deleteItem(id, tableName) {
+    const { error } = await supabase.from(tableName).delete().eq('id', id);
+    if (error) return alert(`Error deleting item: ${error.message}`);
+    
+    // Refresh the relevant section
+    switch(tableName) {
+        case 'destinations': await renderDestinations(); break;
+        case 'rundown': await renderTimeline(); break;
+        case 'dresscode_rules': await renderDresscode(); break;
+        case 'gallery': await renderGallery(); break;
+    }
+}
+
+// --- NAVIGATION ---
+const allSections = ['destinationsSection', 'rundownSection', 'dresscodeSection', 'gallerySection', 'financeSection'];
+function showSection(sectionId) {
+    allSections.forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(sectionId).classList.remove('hidden');
+}
+
+
+// --- EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    const loginSection = document.getElementById('loginSection');
-    const mainContent = document.getElementById('mainContent');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // Auth
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+    // Main Navigation
+    document.getElementById('destinationsBtn').addEventListener('click', () => showSection('destinationsSection'));
+    document.getElementById('rundownBtn').addEventListener('click', () => showSection('rundownSection'));
+    document.getElementById('dresscodeBtn').addEventListener('click', () => showSection('dresscodeSection'));
+    document.getElementById('galleryBtn').addEventListener('click', () => showSection('gallerySection'));
+    document.getElementById('financeBtn').addEventListener('click', () => showSection('financeSection'));
     
-    const destinationsBtn = document.getElementById('destinationsBtn');
-    const rundownBtn = document.getElementById('rundownBtn');
-    const destinationsSection = document.getElementById('destinationsSection');
-    const rundownSection = document.getElementById('rundownSection');
-    const addDestinationBtn = document.getElementById('addDestinationBtn');
-    const destinationName = document.getElementById('destinationName');
-    const destinationLocation = document.getElementById('destinationLocation');
-    const destinationsList = document.getElementById('destinationsList');
-    
-    async function renderDestinations() {
-        const { data, error } = await supabase.from('destinations').select('*');
-        if (error) {
-            alert('Error fetching destinations: ' + error.message);
-            return;
-        }
-        destinationsList.innerHTML = '';
-        data.forEach((destination, index) => {
-            const destinationElement = document.createElement('div');
-            destinationElement.className = 'card bg-white rounded-lg overflow-hidden';
-            destinationElement.innerHTML = `
-                <div class="pointer-events-none">
-                    <div class="p-4 pb-3">
-                        <div class="flex items-center mb-2">
-                            <i class="fas fa-map-marker-alt text-rose-500 mr-2"></i>
-                            <h4 class="font-medium text-gray-800">${destination.name}</h4>
-                        </div>
-                        <p class="text-gray-600 text-sm">${destination.location}</p>
-                    </div>
-                    <div class="px-4 pb-3 pt-0 flex justify-end">
-                        <button class="delete-destination text-rose-600 hover:text-rose-800 text-sm" data-id="${destination.id}">
-                            <i class="fas fa-trash-alt mr-1"></i> Remove
-                        </button>
-                    </div>
-                </div>
-            `;
-            destinationsList.appendChild(destinationElement);
-        });
-        
-        document.querySelectorAll('.delete-destination').forEach(button => {
-            button.addEventListener('click', async function() {
-                const id = this.getAttribute('data-id');
-                await deleteDestination(id);
-            });
-        });
-    }
-    
-    async function addDestination(name, location) {
-        if (!name.trim() || !location.trim()) {
-            alert('Please fill in both name and location');
-            return;
-        }
-        
-        const { data, error } = await supabase.from('destinations').insert([{ name, location }]);
-        if (error) {
-            alert('Error adding destination: ' + error.message);
-            return;
-        }
-        destinationName.value = '';
-        destinationLocation.value = '';
-        renderDestinations();
-    }
-    
-    async function deleteDestination(id) {
-        const { error } = await supabase.from('destinations').delete().eq('id', id);
-        if (error) {
-            alert('Error deleting destination: ' + error.message);
-            return;
-        }
-        renderDestinations();
-    }
-    
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        
-        if ((username === 'alma' && password === 'urgf') || (username === 'fandi' && password === 'urbf')) {
-            loginSection.classList.add('opacity-0', 'pointer-events-none');
-            mainContent.classList.remove('hidden');
-            currentUser = username;
-            initFinance();
-            destinationsSection.classList.remove('hidden');
-            rundownSection.classList.add('hidden');
-            renderDestinations();
-            renderTimeline();
-        } else {
-            alert('Invalid credentials. Please try again.');
-        }
-    });
-    
-    logoutBtn.addEventListener('click', function() {
-        loginSection.classList.remove('opacity-0', 'pointer-events-none');
-        mainContent.classList.add('hidden');
-        loginForm.reset();
-    });
-    
-    const dresscodeBtn = document.getElementById('dresscodeBtn');
-    const dresscodeSection = document.getElementById('dresscodeSection');
-    const galleryBtn = document.getElementById('galleryBtn');
-    const gallerySection = document.getElementById('gallerySection');
-    const financeBtn = document.getElementById('financeBtn');
-    const financeSection = document.getElementById('financeSection');
-    
-    destinationsBtn.addEventListener('click', function() {
-        destinationsSection.classList.remove('hidden');
-        rundownSection.classList.add('hidden');
-        dresscodeSection.classList.add('hidden');
-        gallerySection.classList.add('hidden');
-        financeSection.classList.add('hidden');
-    });
-    
-    rundownBtn.addEventListener('click', function() {
-        rundownSection.classList.remove('hidden');
-        destinationsSection.classList.add('hidden');
-        dresscodeSection.classList.add('hidden');
-        gallerySection.classList.add('hidden');
-        financeSection.classList.add('hidden');
-        renderTimeline();
-    });
-    
-    dresscodeBtn.addEventListener('click', function() {
-        dresscodeSection.classList.remove('hidden');
-        destinationsSection.classList.add('hidden');
-        rundownSection.classList.add('hidden');
-        gallerySection.classList.add('hidden');
-        financeSection.classList.add('hidden');
-    });
-    
-    galleryBtn.addEventListener('click', function() {
-        gallerySection.classList.remove('hidden');
-        destinationsSection.classList.add('hidden');
-        rundownSection.classList.add('hidden');
-        dresscodeSection.classList.add('hidden');
-        financeSection.classList.add('hidden');
-    });
-    
-    financeBtn.addEventListener('click', function() {
-        financeSection.classList.remove('hidden');
-        destinationsSection.classList.add('hidden');
-        rundownSection.classList.add('hidden');
-        dresscodeSection.classList.add('hidden');
-        gallerySection.classList.add('hidden');
-        renderFinanceData();
-    });
-    
-    async function initFinance() {
-        const { data: budgetsData, error: budgetsError } = await supabase.from('budgets').select('*').eq('user', currentUser);
-        const { data: expensesData, error: expensesError } = await supabase.from('expenses').select('*').eq('user', currentUser);
-        if (budgetsError || expensesError) {
-            alert('Error loading finance data: ' + (budgetsError?.message || expensesError?.message));
-            budgets = [];
-            expenses = [];
-        } else {
-            budgets = budgetsData;
-            expenses = expensesData;
-        }
-        
-        document.getElementById('addBudgetBtn').addEventListener('click', async function() {
-            const category = document.getElementById('financeCategory').value;
-            const amountInput = document.getElementById('plannedAmount').value;
-            const amount = parseRupiah(amountInput);
-            
-            if (isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid amount');
-                return;
-            }
-            
-            const { error } = await supabase.from('budgets').insert([{ category, amount, user: currentUser }]);
-            if (error) {
-                alert('Error adding budget: ' + error.message);
-                return;
-            }
-            document.getElementById('plannedAmount').value = '';
-            renderFinanceData();
-        });
-        
-        document.getElementById('addExpenseBtn').addEventListener('click', async function() {
-            const date = document.getElementById('expenseDate').value;
-            const category = document.getElementById('expenseCategory').value;
-            const amountInput = document.getElementById('expenseAmount').value;
-            const amount = parseRupiah(amountInput);
-            const description = document.getElementById('expenseDescription').value;
-            
-            if (!date || isNaN(amount) || amount <= 0 || !description) {
-                alert('Please fill all fields with valid values');
-                return;
-            }
-            
-            const { error } = await supabase.from('expenses').insert([{ date, category, amount, description, user: currentUser }]);
-            if (error) {
-                alert('Error adding expense: ' + error.message);
-                return;
-            }
-            document.getElementById('expenseAmount').value = '';
-            document.getElementById('expenseDescription').value = '';
-            renderFinanceData();
-        });
-    }
-    
-    function formatRupiah(amount) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
-    }
-    
-    document.querySelectorAll('input[type="text"][placeholder^="Rp"]').forEach(input => {
-        input.addEventListener('keyup', function(e) {
-            let value = this.value.replace(/\D/g, '');
-            this.value = value ? 'Rp' + value.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
-        });
-    });
-    
-    function calculateTotals() {
-        const totalBudget = budgets.reduce((sum, item) => sum + item.amount, 0);
-        const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
-        const remaining = totalBudget - totalExpense;
-        
-        document.getElementById('plannedBudget').textContent = formatRupiah(totalBudget);
-        document.getElementById('actualSpent').textContent = formatRupiah(totalExpense);
-        document.getElementById('remainingBudget').textContent = formatRupiah(remaining);
-        
-        return { totalBudget, totalExpense };
-    }
-    
-    function parseRupiah(value) {
-        if (!value) return 0;
-        return parseInt(value.replace(/\D/g, '') || '0');
-    }
-    
-    async function renderFinanceData() {
-        const { data: budgetsData, error: budgetsError } = await supabase.from('budgets').select('*').eq('user', currentUser);
-        const { data: expensesData, error: expensesError } = await supabase.from('expenses').select('*').eq('user', currentUser);
-        if (budgetsError || expensesError) {
-            alert('Error fetching finance data: ' + (budgetsError?.message || expensesError?.message));
-            return;
-        }
-        budgets = budgetsData;
-        expenses = expensesData;
-        
-        const { totalBudget, totalExpense } = calculateTotals();
-        const tableBody = document.getElementById('financeTableBody');
-        tableBody.innerHTML = '';
-        
-        const categories = [...new Set(budgets.map(item => item.category))];
-        
-        categories.forEach(category => {
-            const catBudgets = budgets.filter(b => b.category === category);
-            const catExpenses = expenses.filter(e => e.category === category);
-            
-            const catBudget = catBudgets.reduce((sum, item) => sum + item.amount, 0);
-            const catExpense = catExpenses.reduce((sum, item) => sum + item.amount, 0);
-            const difference = catBudget - catExpense;
-            const percentage = catBudget > 0 ? (catExpense / catBudget * 100).toFixed(2) : 0;
-            
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-gray-50';
-            row.innerHTML = `
-                <td class="px-4 py-3 text-sm text-gray-700 capitalize">${category}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catBudget)}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catExpense)}</td>
-                <td class="px-4 py-3 text-sm text-right ${difference >= 0 ? 'text-green-600' : 'text-red-600'}">${formatRupiah(difference)}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-700">${percentage}%</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
-    
-    async function renderTimeline() {
-        const timeline = document.querySelector('.timeline');
-        if (!timeline) return;
-        timeline.innerHTML = '';
-        
-        const { data: rundownItems, error } = await supabase.from('rundown').select('*');
-        if (error) {
-            alert('Error fetching rundown items: ' + error.message);
-            return;
-        }
-        
-        rundownItems.forEach(item => {
-            const newItem = document.createElement('div');
-            newItem.className = 'timeline-item relative pb-6';
-            newItem.innerHTML = `
-                <div class="bg-rose-50 p-4 rounded-lg">
-                    <div class="flex justify-between items-start mb-1">
-                        <h4 class="font-medium text-gray-800">${item.time}</h4>
-                        ${item.isSuggestion ? '<span class="text-xs text-rose-500">Suggestion</span>' : ''}
-                    </div>
-                    <p class="text-gray-600">${item.activity}</p>
-                </div>
-            `;
-            timeline.appendChild(newItem);
-        });
-    }
-    
-    addDestinationBtn.addEventListener('click', function() {
-        const name = destinationName.value;
-        const location = destinationLocation.value;
-        addDestination(name, location);
-        
-        const message = `*NEW DESTINATION SUGGESTION*\n\n*Name:* ${name}\n*Location:* ${location}\n\nFrom: ${username}`;
-        sendToWhatsApp(message);
-    });
-    
-    const addRundownSuggestionBtn = document.getElementById('addRundownSuggestionBtn');
-    const rundownTime = document.getElementById('rundownTime');
-    const rundownActivity = document.getElementById('rundownActivity');
-    
-    addRundownSuggestionBtn.addEventListener('click', async function() {
-        const time = rundownTime.value;
-        const activity = rundownActivity.value;
-        
-        if (!time || !activity) {
-            alert('Please fill both time and activity');
-            return;
-        }
-        
-        const { error } = await supabase.from('rundown').insert([{ time, activity, isSuggestion: true, user: currentUser }]);
-        if (error) {
-            alert('Error adding rundown suggestion: ' + error.message);
-            return;
-        }
-        
-        renderTimeline();
-        
-        const message = `*NEW RUNDOWN SUGGESTION*\n\n*Time:* ${time}\n*Activity:* ${activity}\n\nFrom: ${username}`;
-        sendToWhatsApp(message);
-        
-        rundownTime.value = '';
-        rundownActivity.value = '';
-    });
-    
-    const shareDirectionsBtn = document.getElementById('shareDirectionsBtn');
-    shareDirectionsBtn.addEventListener('click', async function() {
+    // Add Buttons
+    document.getElementById('addDestinationBtn').addEventListener('click', addDestination);
+    document.getElementById('addRundownSuggestionBtn').addEventListener('click', addRundownSuggestion);
+    document.getElementById('addDresscodeBtn').addEventListener('click', addDresscode);
+    document.getElementById('addImageBtn').addEventListener('click', addImage);
+    document.getElementById('addBudgetBtn').addEventListener('click', addBudget);
+    document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
+
+    // Share Button
+    document.getElementById('shareDirectionsBtn').addEventListener('click', async function() {
         let message = 'Our romantic itinerary:\n\n';
-        
-        const { data: destinationsData, error: destinationsError } = await supabase.from('destinations').select('*');
-        if (destinationsError) {
-            alert('Error fetching destinations: ' + destinationsError.message);
-            return;
-        }
+        const { data: destinations } = await supabase.from('destinations').select('*');
+        const { data: rundown } = await supabase.from('rundown').select('*');
         
         message += 'Destinations:\n';
-        destinationsData.forEach(dest => {
-            message += `📍 ${dest.name}\n${dest.location}\n\n`;
-        });
-        
-        const { data: rundownData, error: rundownError } = await supabase.from('rundown').select('*');
-        if (rundownError) {
-            alert('Error fetching rundown: ' + rundownError.message);
-            return;
-        }
+        destinations.forEach(d => message += `📍 ${d.name}\n${d.location}\n\n`);
         
         message += 'Schedule:\n';
-        rundownData.forEach(item => {
-            message += `⏰ ${item.time}\n${item.activity}\n\n`;
-        });
+        rundown.forEach(r => message += `⏰ ${r.time}\n${r.activity}\n\n`);
         
         sendToWhatsApp(message);
     });
-    
-    destinationLocation.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            addDestination(destinationName.value, destinationLocation.value);
+
+    // Event delegation for delete buttons
+    document.body.addEventListener('click', function(e) {
+        const deleteButton = e.target.closest('.delete-btn');
+        if (deleteButton) {
+            const id = deleteButton.getAttribute('data-id');
+            const table = deleteButton.getAttribute('data-table');
+            if (confirm('Are you sure you want to delete this item?')) {
+                deleteItem(id, table);
+            }
         }
+    });
+
+    // Format Rupiah inputs
+    document.querySelectorAll('input[placeholder^="Rp"]').forEach(input => {
+        input.addEventListener('keyup', function(e) {
+            let value = this.value.replace(/\D/g, '');
+            this.value = value ? 'Rp' + new Intl.NumberFormat('id-ID').format(value) : '';
+        });
     });
 });
