@@ -1,13 +1,24 @@
-javascript
-// Inisialisasi Supabase
-const supabase = Supabase.createClient('https://lahzymgcaeuvwshdeqtc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTI5Njk4OCwiZXhwIjoyMDY0ODcyOTg4fQ._bMxdtM3i3c7N6JYjMb7nLd09AgOwo-0H0xf1LnNZjw');
+// --- CONFIGURATION ---
 
-// Variabel global untuk menyimpan state
+// 🔒 CRITICAL: NEVER expose your service_role or secret keys in client-side code.
+// 1. Go to your Supabase Project > Settings > API.
+// 2. Find your Project URL and the `anon` public key.
+// 3. Paste them here.
+const SUPABASE_URL = 'https://lahzymgcaeuvwshdeqtc.supabase.co'; // Replace with your Supabase URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.0yIqMAo1qKCg4Xo9TTagC8U3cxgp-0M17k6pYTKy6Jk'; // Replace with your ANON KEY
+
+// Inisialisasi Supabase
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- GLOBAL STATE & DOM ELEMENTS ---
 let currentUser;
+const loginSection = document.getElementById('loginSection');
+const mainContent = document.getElementById('mainContent');
+const authError = document.getElementById('authError');
 
 // --- UTILITY FUNCTIONS ---
 function sendToWhatsApp(content) {
-    const phoneNumber = "628994108524"; // Ganti dengan nomor Anda
+    const phoneNumber = "628994108524"; // Replace with your number
     const encodedMessage = encodeURIComponent(content);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
 }
@@ -20,75 +31,39 @@ function formatRupiah(amount) {
     }).format(amount);
 }
 
-function parseRupiah(value) {
-    if (!value) return 0;
-    return parseInt(String(value).replace(/\D/g, '') || '0');
-}
-
 // --- AUTHENTICATION ---
-async function handleLogin(e) {
+const handleLogin = async (e) => {
     e.preventDefault();
-    const usernameInput = document.getElementById('username').value; // Tetap gunakan sebagai email
-    const passwordInput = document.getElementById('password').value;
+    authError.textContent = '';
+    const email = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
 
-    // Gunakan Supabase Auth untuk login
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: usernameInput,
-        password: passwordInput,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-        alert('Error logging in: ' + error.message);
-        return;
-    }
-
-    // Jika berhasil, data user akan ada di 'data.user'
-    if (data.user) {
-        currentUser = data.user; // Simpan informasi user yang login
-        document.getElementById('loginSection').classList.add('opacity-0', 'pointer-events-none');
-        document.getElementById('mainContent').classList.remove('hidden');
-        
-        loadAllData(); // Muat semua data setelah login berhasil
+        console.error('Login Error:', error.message);
+        authError.textContent = 'Invalid email or password.';
     } else {
-        alert('Invalid email or password. Please try again.');
+        document.getElementById('loginForm').reset();
     }
+};
+
+const handleLogout = async () => {
+    await supabase.auth.signOut();
+};
+
+// --- NAVIGATION ---
+const allSections = ['destinationsSection', 'rundownSection', 'dresscodeSection', 'gallerySection', 'financeSection'];
+function showSection(sectionId) {
+    allSections.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    document.getElementById(sectionId)?.classList.remove('hidden');
 }
 
-async function handleLogout() {
-    // Gunakan Supabase Auth untuk logout
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-        alert('Error logging out: ' + error.message);
-        return;
-    }
+// --- DATA RENDERING ---
 
-    currentUser = null;
-    document.getElementById('loginSection').classList.remove('opacity-0', 'pointer-events-none');
-    document.getElementById('mainContent').classList.add('hidden');
-    document.getElementById('loginForm').reset();
-}
-
-async function loadAllData() {
-    // Render semua data dari Supabase secara bersamaan
-    await Promise.all([
-        renderDestinations(),
-        renderTimeline(),
-        renderDresscode(),
-        renderGallery(),
-        renderFinanceData()
-    ]);
-    // Tampilkan section default (misalnya, Destinations)
-    showSection('destinationsSection');
-}
-
-
-// --- DYNAMIC CONTENT RENDERING ---
-
-// Destinations
 async function renderDestinations() {
     const { data, error } = await supabase.from('destinations').select('*').order('created_at', { ascending: true });
-    if (error) return alert('Error fetching destinations: ' + error.message);
+    if (error) return console.error('Error fetching destinations:', error.message);
 
     const list = document.getElementById('destinationsList');
     list.innerHTML = '';
@@ -112,24 +87,9 @@ async function renderDestinations() {
     });
 }
 
-async function addDestination() {
-    const name = document.getElementById('destinationName').value;
-    const location = document.getElementById('destinationLocation').value;
-    if (!name.trim() || !location.trim()) return alert('Please fill in both name and location');
-
-    const { error } = await supabase.from('destinations').insert([{ name, location }]);
-    if (error) return alert('Error adding destination: ' + error.message);
-    
-    document.getElementById('destinationName').value = '';
-    document.getElementById('destinationLocation').value = '';
-    await renderDestinations();
-    sendToWhatsApp(`*NEW DESTINATION SUGGESTION*\n\n*Name:* ${name}\n*Location:* ${location}\n\nFrom: ${currentUser}`);
-}
-
-// Rundown
 async function renderTimeline() {
     const { data, error } = await supabase.from('rundown').select('*').order('time', { ascending: true });
-    if (error) return alert('Error fetching rundown: ' + error.message);
+    if (error) return console.error('Error fetching rundown:', error.message);
 
     const timeline = document.getElementById('timeline');
     timeline.innerHTML = '';
@@ -140,7 +100,7 @@ async function renderTimeline() {
             <div class="bg-rose-50 p-4 rounded-lg relative">
                 <div class="flex justify-between items-start mb-1">
                     <h4 class="font-medium text-gray-800">${item.time}</h4>
-                    ${item.isSuggestion ? `<span class="text-xs text-rose-500">Suggestion by ${item.user}</span>` : ''}
+                     ${item.is_suggestion ? `<span class="text-xs text-rose-500">Suggestion by ${item.user_email}</span>` : ''}
                 </div>
                 <p class="text-gray-600">${item.activity}</p>
                 <button class="delete-btn absolute top-2 right-2 text-rose-400 hover:text-rose-600" data-id="${item.id}" data-table="rundown">
@@ -151,24 +111,9 @@ async function renderTimeline() {
     });
 }
 
-async function addRundownSuggestion() {
-    const time = document.getElementById('rundownTime').value;
-    const activity = document.getElementById('rundownActivity').value;
-    if (!time || !activity) return alert('Please fill both time and activity');
-
-    const { error } = await supabase.from('rundown').insert([{ time, activity, isSuggestion: true, user: currentUser.email }]);
-    if (error) return alert('Error adding rundown suggestion: ' + error.message);
-    
-    await renderTimeline();
-    sendToWhatsApp(`*NEW RUNDOWN SUGGESTION*\n\n*Time:* ${time}\n*Activity:* ${activity}\n\nFrom: ${currentUser}`);
-    document.getElementById('rundownTime').value = '';
-    document.getElementById('rundownActivity').value = '';
-}
-
-// Dresscode
 async function renderDresscode() {
     const { data, error } = await supabase.from('dresscode_rules').select('*').order('created_at', { ascending: true });
-    if (error) return alert('Error fetching dresscode: ' + error.message);
+    if (error) return console.error('Error fetching dresscode:', error.message);
     
     const list = document.getElementById('dresscodeList');
     list.innerHTML = '';
@@ -184,21 +129,9 @@ async function renderDresscode() {
     });
 }
 
-async function addDresscode() {
-    const rule = document.getElementById('dresscodeRule').value;
-    if (!rule.trim()) return alert('Please enter a dresscode rule.');
-    
-    const { error } = await supabase.from('dresscode_rules').insert([{ rule }]);
-    if (error) return alert('Error adding dresscode: ' + error.message);
-    
-    document.getElementById('dresscodeRule').value = '';
-    await renderDresscode();
-}
-
-// Gallery
 async function renderGallery() {
     const { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
-    if (error) return alert('Error fetching gallery: ' + error.message);
+    if (error) return console.error('Error fetching gallery:', error.message);
 
     const container = document.getElementById('galleryContainer');
     container.innerHTML = '';
@@ -206,7 +139,7 @@ async function renderGallery() {
         const item = document.createElement('div');
         item.className = 'relative group';
         item.innerHTML = `
-            <img src="${image.image_url}" alt="Gallery image" class="w-full h-full object-cover rounded-lg shadow-md">
+            <img src="${image.image_url}" alt="Gallery image" class="w-full h-48 object-cover rounded-lg shadow-md">
             <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <button class="delete-btn text-white text-2xl" data-id="${image.id}" data-table="gallery">
                     <i class="fas fa-trash-alt"></i>
@@ -216,85 +149,65 @@ async function renderGallery() {
     });
 }
 
-async function addImage() {
-    const imageUrl = document.getElementById('imageUrl').value;
-    if (!imageUrl.trim()) return alert('Please enter an image URL.');
-    
-    const { error } = await supabase.from('gallery').insert([{ image_url: imageUrl }]);
-    if (error) return alert('Error adding image: ' + error.message);
 
-    document.getElementById('imageUrl').value = '';
+// --- DATA MANIPULATION ---
+// NOTE: I've assumed you have a 'user_id' column in your tables that links to auth.users.id
+// and that you have enabled Row Level Security (RLS) policies in Supabase.
+
+async function addDestination(e) {
+    e.preventDefault();
+    const name = document.getElementById('destinationName').value;
+    const location = document.getElementById('destinationLocation').value;
+
+    const { error } = await supabase.from('destinations').insert([{ name, location, user_id: currentUser.id }]);
+    if (error) return console.error('Error adding destination:', error.message);
+    
+    e.target.reset();
+    await renderDestinations();
+    sendToWhatsApp(`*NEW DESTINATION SUGGESTION*\n\n*Name:* ${name}\n*Location:* ${location}\n\nFrom: ${currentUser.email}`);
+}
+
+async function addRundownSuggestion(e) {
+    e.preventDefault();
+    const time = document.getElementById('rundownTime').value;
+    const activity = document.getElementById('rundownActivity').value;
+    
+    const { error } = await supabase.from('rundown').insert([{ time, activity, is_suggestion: true, user_id: currentUser.id, user_email: currentUser.email }]);
+    if (error) return console.error('Error adding rundown suggestion:', error.message);
+    
+    e.target.reset();
+    await renderTimeline();
+    sendToWhatsApp(`*NEW RUNDOWN SUGGESTION*\n\n*Time:* ${time}\n*Activity:* ${activity}\n\nFrom: ${currentUser.email}`);
+}
+
+async function addDresscode(e) {
+    e.preventDefault();
+    const rule = document.getElementById('dresscodeRule').value;
+    
+    const { error } = await supabase.from('dresscode_rules').insert([{ rule, user_id: currentUser.id }]);
+    if (error) return console.error('Error adding dresscode:', error.message);
+    
+    e.target.reset();
+    await renderDresscode();
+}
+
+async function addImage(e) {
+    e.preventDefault();
+    const imageUrl = document.getElementById('imageUrl').value;
+    
+    const { error } = await supabase.from('gallery').insert([{ image_url: imageUrl, user_id: currentUser.id }]);
+    if (error) return console.error('Error adding image:', error.message);
+
+    e.target.reset();
     await renderGallery();
 }
 
-// Finance
-async function renderFinanceData() {
-    if (!currentUser) return;
-    const { data: budgets, error: budgetsError } = await supabase.from('budgets').select('*').eq('user', currentUser);
-    const { data: expenses, error: expensesError } = await supabase.from('expenses').select('*').eq('user', currentUser);
 
-    if (budgetsError || expensesError) return alert('Error fetching finance data.');
-
-    const totalBudget = budgets.reduce((sum, item) => sum + item.amount, 0);
-    const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
-
-    document.getElementById('plannedBudget').textContent = formatRupiah(totalBudget);
-    document.getElementById('actualSpent').textContent = formatRupiah(totalExpense);
-    document.getElementById('remainingBudget').textContent = formatRupiah(totalBudget - totalExpense);
-
-    const tableBody = document.getElementById('financeTableBody');
-    tableBody.innerHTML = '';
-    const categories = [...new Set([...budgets.map(b => b.category), ...expenses.map(e => e.category)])];
-
-    categories.forEach(category => {
-        const catBudget = budgets.filter(b => b.category === category).reduce((s, i) => s + i.amount, 0);
-        const catExpense = expenses.filter(e => e.category === category).reduce((s, i) => s + i.amount, 0);
-        const difference = catBudget - catExpense;
-        const percentage = catBudget > 0 ? (catExpense / catBudget * 100).toFixed(1) : 0;
-        
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="px-4 py-3 text-sm text-gray-700 capitalize">${category}</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catBudget)}</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-700">${formatRupiah(catExpense)}</td>
-            <td class="px-4 py-3 text-sm text-right ${difference >= 0 ? 'text-green-600' : 'text-red-600'}">${formatRupiah(difference)}</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-700">${percentage}%</td>`;
-        tableBody.appendChild(row);
-    });
-}
-
-async function addBudget() {
-    const category = document.getElementById('financeCategory').value;
-    const amount = parseRupiah(document.getElementById('plannedAmount').value);
-    if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount');
-    
-    const { error } = await supabase.from('budgets').insert([{ category, amount, user: currentUser.email }]);
-    if (error) return alert('Error adding budget: ' + error.message);
-    
-    document.getElementById('plannedAmount').value = '';
-    await renderFinanceData();
-}
-
-async function addExpense() {
-    const date = document.getElementById('expenseDate').value;
-    const category = document.getElementById('expenseCategory').value;
-    const amount = parseRupiah(document.getElementById('expenseAmount').value);
-    const description = document.getElementById('expenseDescription').value;
-
-    if (!date || isNaN(amount) || amount <= 0 || !description) return alert('Please fill all fields with valid values');
-    
-    const { error } = await supabase.from('expenses').insert([{ date, category, amount, description, user: currentUser.email }]);
-    if (error) return alert('Error adding expense: ' + error.message);
-
-    document.getElementById('expenseAmount').value = '';
-    document.getElementById('expenseDescription').value = '';
-    await renderFinanceData();
-}
-
-// Generic Delete Function
 async function deleteItem(id, tableName) {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+
     const { error } = await supabase.from(tableName).delete().eq('id', id);
-    if (error) return alert(`Error deleting item: ${error.message}`);
+    if (error) return console.error(`Error deleting item from ${tableName}:`, error.message);
     
     // Refresh the relevant section
     switch(tableName) {
@@ -305,19 +218,8 @@ async function deleteItem(id, tableName) {
     }
 }
 
-// --- NAVIGATION ---
-const allSections = ['destinationsSection', 'rundownSection', 'dresscodeSection', 'gallerySection', 'financeSection'];
-function showSection(sectionId) {
-    allSections.forEach(id => {
-        document.getElementById(id).classList.add('hidden');
-    });
-    document.getElementById(sectionId).classList.remove('hidden');
-}
-
-
 // --- EVENT LISTENERS ---
-document.addEventListener('DOMContentLoaded', function() {
-    // Auth
+function setupEventListeners() {
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 
@@ -328,46 +230,67 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('galleryBtn').addEventListener('click', () => showSection('gallerySection'));
     document.getElementById('financeBtn').addEventListener('click', () => showSection('financeSection'));
     
-    // Add Buttons
-    document.getElementById('addDestinationBtn').addEventListener('click', addDestination);
-    document.getElementById('addRundownSuggestionBtn').addEventListener('click', addRundownSuggestion);
-    document.getElementById('addDresscodeBtn').addEventListener('click', addDresscode);
-    document.getElementById('addImageBtn').addEventListener('click', addImage);
-    document.getElementById('addBudgetBtn').addEventListener('click', addBudget);
-    document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
+    // Add Forms
+    document.getElementById('addDestinationForm').addEventListener('submit', addDestination);
+    document.getElementById('addRundownForm').addEventListener('submit', addRundownSuggestion);
+    document.getElementById('addDresscodeForm').addEventListener('submit', addDresscode);
+    document.getElementById('addImageForm').addEventListener('submit', addImage);
 
     // Share Button
-    document.getElementById('shareDirectionsBtn').addEventListener('click', async function() {
+    document.getElementById('shareDirectionsBtn').addEventListener('click', async () => {
         let message = 'Our romantic itinerary:\n\n';
-        const { data: destinations } = await supabase.from('destinations').select('*');
-        const { data: rundown } = await supabase.from('rundown').select('*');
+        const { data: destinations, error: destError } = await supabase.from('destinations').select('*');
+        const { data: rundown, error: runError } = await supabase.from('rundown').select('*');
         
+        if (destError || runError) return console.error("Could not fetch itinerary for sharing.");
+
         message += 'Destinations:\n';
         destinations.forEach(d => message += `📍 ${d.name}\n${d.location}\n\n`);
         
         message += 'Schedule:\n';
-        rundown.forEach(r => message += `⏰ ${r.time}\n${r.activity}\n\n`);
+        rundown.forEach(r => message += `⏰ ${r.time} - ${r.activity}\n`);
         
         sendToWhatsApp(message);
     });
 
     // Event delegation for delete buttons
-    document.body.addEventListener('click', function(e) {
+    document.body.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.delete-btn');
         if (deleteButton) {
-            const id = deleteButton.getAttribute('data-id');
-            const table = deleteButton.getAttribute('data-table');
-            if (confirm('Are you sure you want to delete this item?')) {
-                deleteItem(id, table);
-            }
+            const id = deleteButton.dataset.id;
+            const table = deleteButton.dataset.table;
+            deleteItem(id, table);
         }
     });
+}
 
-    // Format Rupiah inputs
-    document.querySelectorAll('input[placeholder^="Rp"]').forEach(input => {
-        input.addEventListener('keyup', function(e) {
-            let value = this.value.replace(/\D/g, '');
-            this.value = value ? 'Rp' + new Intl.NumberFormat('id-ID').format(value) : '';
-        });
-    });
+// --- INITIALIZATION ---
+
+// This is the recommended way to handle auth state changes.
+supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+        // User is logged in
+        currentUser = session.user;
+        loginSection.classList.add('opacity-0', 'pointer-events-none');
+        mainContent.classList.remove('hidden');
+        
+        // Load all data and show the default section
+        await Promise.all([
+            renderDestinations(),
+            renderTimeline(),
+            renderDresscode(),
+            renderGallery(),
+            // renderFinanceData() // Add your finance render function here if needed
+        ]);
+        showSection('destinationsSection');
+    } else {
+        // User is logged out
+        currentUser = null;
+        loginSection.classList.remove('opacity-0', 'pointer-events-none');
+        mainContent.classList.add('hidden');
+        authError.textContent = '';
+    }
 });
+
+// Set up all event listeners once the DOM is loaded.
+document.addEventListener('DOMContentLoaded', setupEventListeners);
