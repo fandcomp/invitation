@@ -33,8 +33,8 @@ async function handleLogin(e) {
 
     // Gunakan Supabase Auth untuk login
     const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'h4f4nd1@gmail.com',
-        password: 'hanifandi',
+        email: usernameInput,
+        password: passwordInput,
     });
 
     if (error) {
