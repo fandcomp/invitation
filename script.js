@@ -1,13 +1,7 @@
 // --- CONFIGURATION ---
+const SUPABASE_URL = 'https://lahzymgcaeuvwshdeqtc.supabase.co'; // Ganti dengan URL Supabase Anda
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.0yIqMAo1qKCg4Xo9TTagC8U3cxgp-0M17k6pYTKy6Jk'; // Ganti dengan Kunci ANON Anda
 
-// 🔒 CRITICAL: NEVER expose your service_role or secret keys in client-side code.
-// 1. Go to your Supabase Project > Settings > API.
-// 2. Find your Project URL and the `anon` public key.
-// 3. Paste them here.
-const SUPABASE_URL = 'https://lahzymgcaeuvwshdeqtc.supabase.co'; // Replace with your Supabase URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.0yIqMAo1qKCg4Xo9TTagC8U3cxgp-0M17k6pYTKy6Jk'; // Replace with your ANON KEY
-
-// Inisialisasi Supabase
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // --- GLOBAL STATE & DOM ELEMENTS ---
@@ -18,35 +12,50 @@ const authError = document.getElementById('authError');
 
 // --- UTILITY FUNCTIONS ---
 function sendToWhatsApp(content) {
-    const phoneNumber = "628994108524"; // Replace with your number
+    const phoneNumber = "628994108524"; // Ganti dengan nomor Anda
     const encodedMessage = encodeURIComponent(content);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
 }
 
-function formatRupiah(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(amount);
-}
-
-// --- AUTHENTICATION ---
+// --- AUTHENTICATION (DIUBAH) ---
 const handleLogin = async (e) => {
     e.preventDefault();
-    authError.textContent = '';
-    const email = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const usernameInput = document.getElementById('username').value;
+    const passwordInput = document.getElementById('password').value;
+    authError.textContent = ''; // Kosongkan error sebelumnya
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Langkah 1: Cari email pengguna berdasarkan username mereka.
+    // CATATAN: Ini mengasumsikan Anda punya tabel 'users' (atau 'profiles')
+    // dengan kolom 'username' dan 'email'.
+    // Anda HARUS mengaktifkan RLS pada tabel ini agar bisa dibaca oleh
+    // pengguna yang belum login.
+    const { data: userData, error: userError } = await supabase
+        .from('users') // <-- PENTING: Ganti 'users' dengan nama tabel Anda jika berbeda.
+        .select('email')
+        .eq('username', usernameInput)
+        .single(); // .single() untuk mendapatkan satu record atau error.
 
-    if (error) {
-        console.error('Login Error:', error.message);
-        authError.textContent = 'Invalid email or password.';
+    if (userError || !userData) {
+        console.error('Error finding user or user not found:', userError);
+        authError.textContent = 'Username atau password salah.';
+        return;
+    }
+
+    // Langkah 2: Gunakan email yang didapat untuk login dengan Supabase Auth.
+    const userEmail = userData.email;
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: passwordInput,
+    });
+
+    if (signInError) {
+        console.error('Sign-in Error:', signInError.message);
+        authError.textContent = 'Username atau password salah.';
     } else {
         document.getElementById('loginForm').reset();
     }
 };
+
 
 const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -111,49 +120,10 @@ async function renderTimeline() {
     });
 }
 
-async function renderDresscode() {
-    const { data, error } = await supabase.from('dresscode_rules').select('*').order('created_at', { ascending: true });
-    if (error) return console.error('Error fetching dresscode:', error.message);
-    
-    const list = document.getElementById('dresscodeList');
-    list.innerHTML = '';
-    data.forEach(rule => {
-        const item = document.createElement('div');
-        item.className = 'flex items-center justify-between bg-rose-50 p-4 rounded-lg';
-        item.innerHTML = `
-            <p class="text-gray-700">${rule.rule}</p>
-            <button class="delete-btn text-rose-500 hover:text-rose-700" data-id="${rule.id}" data-table="dresscode_rules">
-                <i class="fas fa-trash-alt"></i>
-            </button>`;
-        list.appendChild(item);
-    });
-}
-
-async function renderGallery() {
-    const { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
-    if (error) return console.error('Error fetching gallery:', error.message);
-
-    const container = document.getElementById('galleryContainer');
-    container.innerHTML = '';
-    data.forEach(image => {
-        const item = document.createElement('div');
-        item.className = 'relative group';
-        item.innerHTML = `
-            <img src="${image.image_url}" alt="Gallery image" class="w-full h-48 object-cover rounded-lg shadow-md">
-            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <button class="delete-btn text-white text-2xl" data-id="${image.id}" data-table="gallery">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>`;
-        container.appendChild(item);
-    });
-}
-
+// ... Sisa fungsi (renderDresscode, renderGallery, dll.) tetap sama ...
+// ... Salin sisa fungsi dari perbaikan sebelumnya ke sini ...
 
 // --- DATA MANIPULATION ---
-// NOTE: I've assumed you have a 'user_id' column in your tables that links to auth.users.id
-// and that you have enabled Row Level Security (RLS) policies in Supabase.
-
 async function addDestination(e) {
     e.preventDefault();
     const name = document.getElementById('destinationName').value;
@@ -209,7 +179,6 @@ async function deleteItem(id, tableName) {
     const { error } = await supabase.from(tableName).delete().eq('id', id);
     if (error) return console.error(`Error deleting item from ${tableName}:`, error.message);
     
-    // Refresh the relevant section
     switch(tableName) {
         case 'destinations': await renderDestinations(); break;
         case 'rundown': await renderTimeline(); break;
@@ -217,6 +186,7 @@ async function deleteItem(id, tableName) {
         case 'gallery': await renderGallery(); break;
     }
 }
+
 
 // --- EVENT LISTENERS ---
 function setupEventListeners() {
@@ -239,11 +209,9 @@ function setupEventListeners() {
     // Share Button
     document.getElementById('shareDirectionsBtn').addEventListener('click', async () => {
         let message = 'Our romantic itinerary:\n\n';
-        const { data: destinations, error: destError } = await supabase.from('destinations').select('*');
-        const { data: rundown, error: runError } = await supabase.from('rundown').select('*');
+        const { data: destinations } = await supabase.from('destinations').select('*');
+        const { data: rundown } = await supabase.from('rundown').select('*');
         
-        if (destError || runError) return console.error("Could not fetch itinerary for sharing.");
-
         message += 'Destinations:\n';
         destinations.forEach(d => message += `📍 ${d.name}\n${d.location}\n\n`);
         
@@ -265,26 +233,20 @@ function setupEventListeners() {
 }
 
 // --- INITIALIZATION ---
-
-// This is the recommended way to handle auth state changes.
 supabase.auth.onAuthStateChange(async (event, session) => {
     if (session) {
-        // User is logged in
         currentUser = session.user;
         loginSection.classList.add('opacity-0', 'pointer-events-none');
         mainContent.classList.remove('hidden');
         
-        // Load all data and show the default section
         await Promise.all([
             renderDestinations(),
             renderTimeline(),
             renderDresscode(),
             renderGallery(),
-            // renderFinanceData() // Add your finance render function here if needed
         ]);
         showSection('destinationsSection');
     } else {
-        // User is logged out
         currentUser = null;
         loginSection.classList.remove('opacity-0', 'pointer-events-none');
         mainContent.classList.add('hidden');
@@ -292,5 +254,4 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     }
 });
 
-// Set up all event listeners once the DOM is loaded.
 document.addEventListener('DOMContentLoaded', setupEventListeners);
