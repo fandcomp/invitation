@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Romantic Getaway Invitation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-pink-50 to-rose-50">
+    <!-- Login Section (Initially visible) -->
+    <div id="loginSection" class="fixed inset-0 flex items-center justify-center z-50 transition-all duration-500">
+        <div class="login-container rounded-xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="title-font text-3xl text-rose-600 mb-2">Special Invitation</h1>
+                <p class="text-rose-400">Please enter your credentials</p>
+            </div>
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username" name="username" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" name="password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                </div>
+                <button type="submit" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-50">Enter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content (Initially hidden) -->
+    <div id="mainContent" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm py-4">
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-heart text-rose-600 text-xl mr-2"></i>
+                    <h1 class="title-font text-xl text-gray-800">Romantic Getaway</h1>
+                </div>
+                <button id="logoutBtn" class="text-rose-600 hover:text-rose-800 transition">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Hero Section -->
+            <section class="bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl p-8 mb-8 text-center">
+                <h2 class="title-font text-3xl text-rose-700 mb-4">Our Romantic Day Together</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">A carefully planned adventure for us to enjoy memorable moments and create beautiful memories.</p>
+            </section>
+
+            <!-- Navigation Cards -->
+            <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                <div class="card bg-white rounded-xl p-6 cursor-pointer" id="destinationsBtn">
+                    <div class="flex items-start">
+                        <div class="bg-rose-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-map-marker-alt text-rose-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="title-font text-xl text-gray-800 mb-2">Destinations</h3>
+                            <p class="text-gray-600">Explore the special places we'll visit together.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-white rounded-xl p-6 cursor-pointer" id="rundownBtn">
+                    <div class="flex items-start">
+                        <div class="bg-rose-100 p-3 rounded-lg mr-4">
+                            <i class="far fa-calendar-alt text-rose-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="title-font text-xl text-gray-800 mb-2">Rundown</h3>
+                            <p class="text-gray-600">Detailed schedule of our romantic day.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-white rounded-xl p-6 cursor-pointer" id="dresscodeBtn">
+                    <div class="flex items-start">
+                        <div class="bg-rose-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-tshirt text-rose-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="title-font text-xl text-gray-800 mb-2">Dresscode</h3>
+                            <p class="text-gray-600">Match our outfit colors for perfect photos.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-white rounded-xl p-6 cursor-pointer" id="galleryBtn">
+                    <div class="flex items-start">
+                        <div class="bg-rose-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-photo-video text-rose-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="title-font text-xl text-gray-800 mb-2">Gallery</h3>
+                            <p class="text-gray-600">Let's see our photos.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-white rounded-xl p-6 cursor-pointer" id="financeBtn">
+                    <div class="flex items-start">
+                        <div class="bg-rose-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-wallet text-rose-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="title-font text-xl text-gray-800 mb-2">Finance Tracker</h3>
+                            <p class="text-gray-600">Track our budgets & expenses.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Destinations Section -->
+            <section id="destinationsSection" class="hidden mb-12">
+                <h2 class="title-font text-2xl text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-map-marked-alt text-rose-600 mr-2"></i> Our Destinations
+                </h2>
+                <div class="mb-6">
+                    <p class="text-gray-600 mb-4">We'll visit these special places on June 8, 2025:</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="destinationsList">
+                        <!-- Destinations will be added here -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl overflow-hidden mb-4">
+                    <h3 class="title-font text-xl text-gray-800 p-4 border-b">Our Route</h3>
+                    <div class="embed-map-responsive">
+                        <div class="embed-map-container">
+                            <iframe class="embed-map-frame" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?width=600&height=400&hl=en&q=bxc&t=&z=14&ie=UTF8&iwloc=B&output=embed"></iframe>
+                            <a href="https://sprunkly.org" style="font-size:2px!important;color:gray!important;position:absolute;bottom:0;left:0;z-index:1;max-height:10px;overflow:hidden">Sprunki Games</a>
+                            <a href="https://italianbrainrotgames.org/" style="font-size:2px!important;color:gray!important;position:absolute;bottom:0;left:0;z-index:1;max-height:10px;overflow:hidden">Italian Brainrot Games</a>
+                            <a href="https://heygames.org" style="font-size:2px!important;color:gray!important;position:absolute;bottom:0;left:0;z-index:1;max-height:10px;overflow:hidden">HeyGames</a>
+                            <a href="https://map-embed.org" style="font-size:2px!important;color:gray!important;position:absolute;bottom:0;left:0;z-index:1;max-height:10px;overflow:hidden">google maps generator</a>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50">
+                        <button id="shareDirectionsBtn" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition flex items-center">
+                            <i class="fab fa-whatsapp mr-2"></i> Share Directions on WhatsApp
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <h3 class="title-font text-xl text-gray-800 mb-4">Plan Another Destination</h3>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Destination Name</label>
+                            <input type="text" id="destinationName" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Location (Link or Address)</label>
+                            <input type="text" id="destinationLocation" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="addDestinationBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dresscode Section -->
+            <section id="dresscodeSection" class="hidden mb-12">
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
+                        <h2 class="title-font text-2xl flex items-center">
+                            <i class="fas fa-tshirt mr-2"></i> Our Dresscode
+                        </h2>
+                        <p class="text-rose-100">Coordinated outfits for perfect memories</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid:grid-cols-1 md:grid-cols-2 gap-8" id="dresscodeList">
+                            <!-- Dresscode rules will be added here -->
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="title-font text-xl text-gray-800 mb-4">Add Dresscode Rule</h3>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rule</label>
+                                    <input type="text" id="dresscodeRule" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g., Wear matching colors">
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="addDresscodeBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Finance Section -->
+            <section id="financeSection" class="hidden mb-12">
+                <div class="bg-white rounded-xl overflow-hidden shadow">
+                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
+                        <h2 class="title-font text-2xl flex items-center">
+                            <i class="fas fa-wallet mr-2"></i> Finance Tracker
+                        </h2>
+                        <p class="text-rose-100">Track budgets and expenses for our special day</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                                <p class="text-sm text-green-600 mb-1">Planned Budget</p>
+                                <p class="font-bold text-2xl text-gray-800" id="plannedBudget">Rp0</p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <p class="text-sm text-blue-600 mb-1">Actual Spent</p>
+                                <p class="font-bold text-2xl text-gray-800" id="actualSpent">Rp0</p>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                                <p class="text-sm text-orange-600 mb-1">Remaining</p>
+                                <p class="font-bold text-2xl text-gray-800" id="remainingBudget">Rp0</p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm mb-8">
+                            <h3 class="title-font text-xl text-gray-800 mb-4">Plan Your Budget</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select id="financeCategory" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                                        <option value="food">Food & Drinks</option>
+                                        <option value="transport">Transportation</option>
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="shopping">Shopping</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Planned Amount</label>
+                                    <input type="text" id="plannedAmount" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Rp0">
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="addBudgetBtn" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition">
+                                        Add Budget
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm mb-8">
+                            <h3 class="title-font text-xl text-gray-800 mb-4">Track Expenses</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input type="date" id="expenseDate" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select id="expenseCategory" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                                        <option value="food">Food & Drinks</option>
+                                        <option value="transport">Transportation</option>
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="shopping">Shopping</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                    <input type="text" id="expenseAmount" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Rp0">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <input type="text" id="expenseDescription" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Short description">
+                                </div>
+                                <div class="flex items-end md:col-span-4">
+                                    <button id="addExpenseBtn" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition">
+                                        Add Expense
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Planned</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actual</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Difference</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">% Used</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200" id="financeTableBody">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gallery Section -->
+            <section id="gallerySection" class="hidden mb-12">
+                <div class="bg-white rounded-xl overflow-hidden shadow">
+                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
+                        <h2 class="title-font text-2xl flex items-center">
+                            <i class="fas fa-photo-video mr-2"></i> Our Memories
+                        </h2>
+                        <p class="text-rose-100">Precious moments we've shared together</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="galleryContainer">
+                            <!-- Gallery items will be added here -->
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="title-font text-xl text-gray-800 mb-4">Add Photo</h3>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                    <input type="text" id="imageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g., https://example.com/image.jpg">
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="addImageBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rundown Section -->
+            <section id="rundownSection" class="hidden">
+                <div class="bg-white rounded-xl p-4 shadow-sm mb-6">
+                    <h3 class="title-font text-xl text-gray-800 mb-4">Add Suggestion for Rundown</h3>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                            <input type="text" id="rundownTime" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Example: 14:00 - 15:00">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                            <input type="text" id="rundownActivity" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Describe the activity">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="addRundownSuggestionBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
+                                Add Suggestion
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
+                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
+                        <h2 class="title-font text-2xl flex items-center">
+                            <i class="far fa-calendar-alt mr-2"></i> Rundown
+                        </h2>
+                        <p class="text-rose-100">June 8, 2025 · Bintaro Xchange</p>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="title-font text-xl text-rose-700 mb-6">Romantic & Fun Date at Bintaro Xchange</h3>
+                        <div class="timeline relative pl-16" id="timeline">
+                            <!-- Timeline items will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white py-6 border-t border-gray-200">
+            <div class="container mx-auto px-4 text-center text-gray-500">
+                <p>Created with <i class="fas fa-heart text-rose-400"></i> for a special someone</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
