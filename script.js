@@ -1,65 +1,140 @@
-// --- CONFIGURATION ---
-const SUPABASE_URL = 'https://lahzymgcaeuvwshdeqtc.supabase.co'; // Ganti dengan URL Supabase Anda
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.0yIqMAo1qKCg4Xo9TTagC8U3cxgp-0M17k6pYTKy6Jk'; // Ganti dengan Kunci ANON Anda
+// --- KONFIGURASI ---
+// 1. Ganti dengan URL dan Kunci ANON dari dashboard Supabase Anda.
+const SUPABASE_URL = 'https://lahzymgcaeuvwshdeqtc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.0yIqMAo1qKCg4Xo9TTagC8U3cxgp-0M17k6pYTKy6Jk';
+
+// 2. Ganti nama tabel dan kolom sesuai dengan database Anda.
+const USER_TABLE_NAME = 'users'; // Ganti 'users' dengan nama tabel pengguna Anda
+const USERNAME_COLUMN = 'username'; // Ganti 'username' dengan nama kolom username Anda
+const EMAIL_COLUMN = 'email'; // Ganti 'email' dengan nama kolom email Anda
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- GLOBAL STATE & DOM ELEMENTS ---
-let currentUser;
+// --- ELEMEN DOM ---
 const loginSection = document.getElementById('loginSection');
 const mainContent = document.getElementById('mainContent');
+const loginForm = document.getElementById('loginForm');
 const authError = document.getElementById('authError');
+const logoutBtn = document.getElementById('logoutBtn');
 
-// --- UTILITY FUNCTIONS ---
-function sendToWhatsApp(content) {
-    const phoneNumber = "628994108524"; // Ganti dengan nomor Anda
-    const encodedMessage = encodeURIComponent(content);
-    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
-}
+// --- FUNGSI UTAMA ---
 
-// --- AUTHENTICATION (DIUBAH) ---
-const handleLogin = async (e) => {
-    e.preventDefault();
-    const usernameInput = document.getElementById('username').value;
-    const passwordInput = document.getElementById('password').value;
-    authError.textContent = ''; // Kosongkan error sebelumnya
+/**
+ * Fungsi untuk menangani proses login.
+ */
+async function handleLogin(event) {
+    event.preventDefault();
+    console.log("Memulai proses login...");
+    authError.textContent = '';
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
 
-    // Langkah 1: Cari email pengguna berdasarkan username mereka.
-    // CATATAN: Ini mengasumsikan Anda punya tabel 'users' (atau 'profiles')
-    // dengan kolom 'username' dan 'email'.
-    // Anda HARUS mengaktifkan RLS pada tabel ini agar bisa dibaca oleh
-    // pengguna yang belum login.
-    const { data: userData, error: userError } = await supabase
-        .from('users') // <-- PENTING: Ganti 'users' dengan nama tabel Anda jika berbeda.
-        .select('email')
-        .eq('username', usernameInput)
-        .single(); // .single() untuk mendapatkan satu record atau error.
-
-    if (userError || !userData) {
-        console.error('Error finding user or user not found:', userError);
-        authError.textContent = 'Username atau password salah.';
+    if (!username || !password) {
+        authError.textContent = "Username dan password tidak boleh kosong.";
         return;
     }
 
-    // Langkah 2: Gunakan email yang didapat untuk login dengan Supabase Auth.
-    const userEmail = userData.email;
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: passwordInput,
-    });
+    try {
+        // Langkah 1: Ambil data email dari tabel pengguna berdasarkan username
+        console.log(`Mencari email untuk username: "${username}" di tabel "${USER_TABLE_NAME}"`);
+        const { data: userProfile, error: profileError } = await supabase
+            .from(USER_TABLE_NAME)
+            .select(EMAIL_COLUMN)
+            .eq(USERNAME_COLUMN, username)
+            .single();
 
-    if (signInError) {
-        console.error('Sign-in Error:', signInError.message);
-        authError.textContent = 'Username atau password salah.';
-    } else {
-        document.getElementById('loginForm').reset();
+        // Cek jika ada error saat query (misal: RLS salah)
+        if (profileError) {
+            console.error("Error saat mencari profil:", profileError.message);
+            authError.textContent = "Terjadi kesalahan. Cek RLS Policy di Supabase.";
+            return;
+        }
+
+        // Cek jika username tidak ditemukan
+        if (!userProfile) {
+            console.warn("Username tidak ditemukan di database.");
+            authError.textContent = "Username atau password salah.";
+            return;
+        }
+
+        const userEmail = userProfile[EMAIL_COLUMN];
+        console.log(`Email ditemukan: "${userEmail}". Melakukan otentikasi...`);
+
+        // Langkah 2: Lakukan login dengan email dan password menggunakan Supabase Auth
+        const { data: authData, error: authErrorData } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: password,
+        });
+
+        if (authErrorData) {
+            console.error("Error saat otentikasi:", authErrorData.message);
+            authError.textContent = "Username atau password salah.";
+            return;
+        }
+
+        console.log("Login berhasil! Menunggu UI update...");
+        // Jika berhasil, onAuthStateChange akan menangani sisanya.
+
+    } catch (error) {
+        console.error("Terjadi error tak terduga:", error.message);
+        authError.textContent = "Terjadi error tak terduga.";
     }
-};
+}
 
+/**
+ * Fungsi untuk menangani logout.
+ */
+async function handleLogout() {
+    console.log("Melakukan logout...");
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error("Error saat logout:", error.message);
+    }
+}
 
-const handleLogout = async () => {
-    await supabase.auth.signOut();
-};
+/**
+ * Menampilkan atau menyembunyikan halaman berdasarkan status login.
+ */
+function updateUI(isLoggedIn) {
+    if (isLoggedIn) {
+        console.log("Pengguna terdeteksi login. Menampilkan halaman utama.");
+        loginSection.style.display = 'none';
+        mainContent.classList.remove('hidden');
+    } else {
+        console.log("Pengguna terdeteksi logout. Menampilkan halaman login.");
+        loginSection.style.display = 'flex';
+        mainContent.classList.add('hidden');
+    }
+}
+
+// --- EVENT LISTENER ---
+
+// Listener utama untuk form login
+loginForm.addEventListener('submit', handleLogin);
+
+// Listener untuk tombol logout
+logoutBtn.addEventListener('click', handleLogout);
+
+// Listener untuk memantau perubahan status otentikasi (login/logout)
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log(`Event otentikasi terdeteksi: ${event}`);
+    if (event === 'SIGNED_IN' && session) {
+        updateUI(true);
+        // Di sini Anda bisa memanggil fungsi untuk memuat data fitur-fitur
+        // loadAllFeatures();
+    } else if (event === 'SIGNED_OUT') {
+        updateUI(false);
+    }
+});
+
+// Cek status login saat halaman pertama kali dimuat
+(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    updateUI(!!session);
+    if (session) {
+         // loadAllFeatures();
+    }
+})();
 
 // --- NAVIGATION ---
 const allSections = ['destinationsSection', 'rundownSection', 'dresscodeSection', 'gallerySection', 'financeSection'];
