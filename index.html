@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-pink-50 to-rose-50">
     <div id="loginSection" class="fixed inset-0 flex items-center justify-center z-50 transition-all duration-500">
@@ -27,6 +27,7 @@
                 </div>
                 <button type="submit" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-50">Enter</button>
             </form>
+             <p id="authError" class="text-red-500 text-center mt-4"></p>
         </div>
     </div>
 
@@ -49,7 +50,7 @@
                 <p class="text-gray-600 max-w-2xl mx-auto">A carefully planned adventure for us to enjoy memorable moments and create beautiful memories.</p>
             </section>
 
-            <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <section class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
                 <div class="card bg-white rounded-xl p-6 cursor-pointer" id="destinationsBtn">
                     <div class="flex items-start">
                         <div class="bg-rose-100 p-3 rounded-lg mr-4">
@@ -120,35 +121,66 @@
                     <h3 class="title-font text-xl text-gray-800 p-4 border-b">Our Route</h3>
                     <div class="embed-map-responsive">
                         <div class="embed-map-container">
-                            <iframe class="embed-map-frame" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" 
-                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3965.864236903213!2d106.7248889750019!3d-6.281398993705915!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f1de27b43e59%3A0x8cac34363472b512!2sBintaro%20Jaya%20Xchange%20Mall!5e0!3m2!1sen!2sid!4v1717853258169!5m2!1sen!2sid" 
-                                    style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                            <iframe class="embed-map-frame"
+                                    style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3965.992982612053!2d106.72379531535655!3d-6.2646726954668!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f109041a7221%3A0x5544af80407981ca!2sBintaro%20Jaya%20Xchange%20Mall!5e0!3m2!1sen!2sid!4v1654694936306!5m2!1sen!2sid">
                             </iframe>
                         </div>
                     </div>
                     <div class="p-4 bg-gray-50">
                         <button id="shareDirectionsBtn" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition flex items-center">
-                            <i class="fab fa-whatsapp mr-2"></i> Share Directions on WhatsApp
+                            <i class="fab fa-whatsapp mr-2"></i> Share Itinerary on WhatsApp
                         </button>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl p-4 shadow-sm">
                     <h3 class="title-font text-xl text-gray-800 mb-4">Plan Another Destination</h3>
-                    <div class="flex flex-col md:flex-row gap-4">
+                    <form id="addDestinationForm" class="flex flex-col md:flex-row gap-4">
                         <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Destination Name</label>
-                            <input type="text" id="destinationName" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                            <label for="destinationName" class="block text-sm font-medium text-gray-700 mb-1">Destination Name</label>
+                            <input type="text" id="destinationName" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" required>
                         </div>
                         <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Location (Link or Address)</label>
-                            <input type="text" id="destinationLocation" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                            <label for="destinationLocation" class="block text-sm font-medium text-gray-700 mb-1">Location (Link or Address)</label>
+                            <input type="text" id="destinationLocation" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" required>
                         </div>
                         <div class="flex items-end">
-                            <button id="addDestinationBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
-                                Add
+                            <button type="submit" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">Add</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="rundownSection" class="hidden mb-12">
+                 <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
+                        <h2 class="title-font text-2xl flex items-center">
+                            <i class="far fa-calendar-alt mr-2"></i> Rundown
+                        </h2>
+                        <p class="text-rose-100">June 8, 2025 · Bintaro Xchange</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="timeline relative pl-16" id="timeline">
+                            </div>
+                    </div>
+                </div>
+                 <div class="bg-white rounded-xl p-4 shadow-sm mt-6">
+                    <h3 class="title-font text-xl text-gray-800 mb-4">Add Suggestion for Rundown</h3>
+                    <form id="addRundownForm" class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <label for="rundownTime" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                            <input type="text" id="rundownTime" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Example: 14:00 - 15:00" required>
+                        </div>
+                        <div class="flex-1">
+                            <label for="rundownActivity" class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                            <input type="text" id="rundownActivity" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Describe the activity" required>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
+                                Add Suggestion
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </section>
 
@@ -161,119 +193,19 @@
                         <p class="text-rose-100">Coordinated outfits for perfect memories</p>
                     </div>
                     <div class="p-6">
-                        <div class="grid:grid-cols-1 md:grid-cols-2 gap-8" id="dresscodeList">
+                        <div class="grid grid-cols-1 gap-4" id="dresscodeList">
                             </div>
                         <div class="mt-6">
                             <h3 class="title-font text-xl text-gray-800 mb-4">Add Dresscode Rule</h3>
-                            <div class="flex flex-col md:flex-row gap-4">
+                            <form id="addDresscodeForm" class="flex flex-col md:flex-row gap-4">
                                 <div class="flex-1">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rule</label>
-                                    <input type="text" id="dresscodeRule" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g., Wear matching colors">
+                                    <label for="dresscodeRule" class="block text-sm font-medium text-gray-700 mb-1">Rule</label>
+                                    <input type="text" id="dresscodeRule" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g., Wear matching colors" required>
                                 </div>
                                 <div class="flex items-end">
-                                    <button id="addDresscodeBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
-                                        Add
-                                    </button>
+                                    <button type="submit" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">Add</button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="financeSection" class="hidden mb-12">
-                <div class="bg-white rounded-xl overflow-hidden shadow">
-                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
-                        <h2 class="title-font text-2xl flex items-center">
-                            <i class="fas fa-wallet mr-2"></i> Finance Tracker
-                        </h2>
-                        <p class="text-rose-100">Track budgets and expenses for our special day</p>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-                                <p class="text-sm text-green-600 mb-1">Planned Budget</p>
-                                <p class="font-bold text-2xl text-gray-800" id="plannedBudget">Rp0</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                <p class="text-sm text-blue-600 mb-1">Actual Spent</p>
-                                <p class="font-bold text-2xl text-gray-800" id="actualSpent">Rp0</p>
-                            </div>
-                            <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
-                                <p class="text-sm text-orange-600 mb-1">Remaining</p>
-                                <p class="font-bold text-2xl text-gray-800" id="remainingBudget">Rp0</p>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-4 shadow-sm mb-8">
-                            <h3 class="title-font text-xl text-gray-800 mb-4">Plan Your Budget</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <select id="financeCategory" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
-                                        <option value="food">Food & Drinks</option>
-                                        <option value="transport">Transportation</option>
-                                        <option value="entertainment">Entertainment</option>
-                                        <option value="shopping">Shopping</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Planned Amount</label>
-                                    <input type="text" id="plannedAmount" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Rp0">
-                                </div>
-                                <div class="flex items-end">
-                                    <button id="addBudgetBtn" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition">
-                                        Add Budget
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-4 shadow-sm mb-8">
-                            <h3 class="title-font text-xl text-gray-800 mb-4">Track Expenses</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                    <input type="date" id="expenseDate" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <select id="expenseCategory" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300">
-                                        <option value="food">Food & Drinks</option>
-                                        <option value="transport">Transportation</option>
-                                        <option value="entertainment">Entertainment</option>
-                                        <option value="shopping">Shopping</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                                    <input type="text" id="expenseAmount" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Rp0">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <input type="text" id="expenseDescription" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Short description">
-                                </div>
-                                <div class="flex items-end md:col-span-4">
-                                    <button id="addExpenseBtn" class="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition">
-                                        Add Expense
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg overflow-hidden">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Planned</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actual</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Difference</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">% Used</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200" id="financeTableBody">
-                                    </tbody>
-                            </table>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -292,55 +224,23 @@
                             </div>
                         <div class="mt-6">
                             <h3 class="title-font text-xl text-gray-800 mb-4">Add Photo</h3>
-                            <div class="flex flex-col md:flex-row gap-4">
+                             <form id="addImageForm" class="flex flex-col md:flex-row gap-4">
                                 <div class="flex-1">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                    <input type="text" id="imageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g., https://example.com/image.jpg">
+                                    <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                    <input type="url" id="imageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="https://example.com/image.jpg" required>
                                 </div>
                                 <div class="flex items-end">
-                                    <button id="addImageBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
-                                        Add
-                                    </button>
+                                    <button type="submit" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">Add</button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </section>
+            
+            <section id="financeSection" class="hidden mb-12">
+                </section>
 
-            <section id="rundownSection" class="hidden">
-                <div class="bg-white rounded-xl p-4 shadow-sm mb-6">
-                    <h3 class="title-font text-xl text-gray-800 mb-4">Add Suggestion for Rundown</h3>
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                            <input type="text" id="rundownTime" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Example: 14:00 - 15:00">
-                        </div>
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
-                            <input type="text" id="rundownActivity" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Describe the activity">
-                        </div>
-                        <div class="flex items-end">
-                            <button id="addRundownSuggestionBtn" class="bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition h-10">
-                                Add Suggestion
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-xl overflow-hidden shadow-sm mb-6">
-                    <div class="bg-gradient-to-r from-rose-600 to-pink-500 p-4 text-white">
-                        <h2 class="title-font text-2xl flex items-center">
-                            <i class="far fa-calendar-alt mr-2"></i> Rundown
-                        </h2>
-                        <p class="text-rose-100">June 8, 2025 · Bintaro Xchange</p>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="title-font text-xl text-rose-700 mb-6">Romantic & Fun Date at Bintaro Xchange</h3>
-                        <div class="timeline relative pl-16" id="timeline">
-                            </div>
-                    </div>
-                </div>
-            </section>
         </main>
 
         <footer class="bg-white py-6 border-t border-gray-200">
@@ -350,6 +250,6 @@
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js" type="module"></script>
 </body>
 </html>
