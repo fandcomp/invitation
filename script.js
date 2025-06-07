@@ -1,5 +1,5 @@
 // Inisialisasi Supabase
-const supabase = Supabase.createClient('https://lahzymgcaeuvwshdeqtc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyOTY5ODgsImV4cCI6MjA2NDg3Mjk4OH0.mNV4SXgGJ3BE6GNhzsRUMB8zAT6Dx6bkWvQeNBXsY10');
+const supabase = Supabase.createClient('https://lahzymgcaeuvwshdeqtc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHp5bWdjYWV1dndzaGRlcXRjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTI5Njk4OCwiZXhwIjoyMDY0ODcyOTg4fQ._bMxdtM3i3c7N6JYjMb7nLd09AgOwo-0H0xf1LnNZjw');
 
 let username;
 let currentUser;
