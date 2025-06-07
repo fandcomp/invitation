@@ -28,35 +28,41 @@ function parseRupiah(value) {
 // --- AUTHENTICATION ---
 async function handleLogin(e) {
     e.preventDefault();
-    const usernameInput = document.getElementById('username').value;
+    const usernameInput = document.getElementById('username').value; // Tetap gunakan sebagai email
     const passwordInput = document.getElementById('password').value;
 
-    // Ambil data user dari Supabase berdasarkan username
-    const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', usernameInput)
-        .single(); // .single() untuk mendapatkan satu record atau null
+    // Gunakan Supabase Auth untuk login
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'h4f4nd1@gmail.com',
+        password: 'hanifandi',
+    });
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = baris tidak ditemukan, itu bukan error
+    if (error) {
         alert('Error logging in: ' + error.message);
         return;
     }
 
-    // Cek apakah user ditemukan dan password cocok
-    if (user && user.password === passwordInput) {
-        currentUser = user.username;
+    // Jika berhasil, data user akan ada di 'data.user'
+    if (data.user) {
+        currentUser = data.user; // Simpan informasi user yang login
         document.getElementById('loginSection').classList.add('opacity-0', 'pointer-events-none');
         document.getElementById('mainContent').classList.remove('hidden');
         
-        // Muat semua data setelah login berhasil
-        loadAllData();
+        loadAllData(); // Muat semua data setelah login berhasil
     } else {
-        alert('Invalid username or password. Please try again.');
+        alert('Invalid email or password. Please try again.');
     }
 }
 
-function handleLogout() {
+async function handleLogout() {
+    // Gunakan Supabase Auth untuk logout
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+        alert('Error logging out: ' + error.message);
+        return;
+    }
+
     currentUser = null;
     document.getElementById('loginSection').classList.remove('opacity-0', 'pointer-events-none');
     document.getElementById('mainContent').classList.add('hidden');
@@ -150,7 +156,7 @@ async function addRundownSuggestion() {
     const activity = document.getElementById('rundownActivity').value;
     if (!time || !activity) return alert('Please fill both time and activity');
 
-    const { error } = await supabase.from('rundown').insert([{ time, activity, isSuggestion: true, user: currentUser }]);
+    const { error } = await supabase.from('rundown').insert([{ time, activity, isSuggestion: true, user: currentUser.email }]);
     if (error) return alert('Error adding rundown suggestion: ' + error.message);
     
     await renderTimeline();
@@ -262,7 +268,7 @@ async function addBudget() {
     const amount = parseRupiah(document.getElementById('plannedAmount').value);
     if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount');
     
-    const { error } = await supabase.from('budgets').insert([{ category, amount, user: currentUser }]);
+    const { error } = await supabase.from('budgets').insert([{ category, amount, user: currentUser.email }]);
     if (error) return alert('Error adding budget: ' + error.message);
     
     document.getElementById('plannedAmount').value = '';
@@ -277,7 +283,7 @@ async function addExpense() {
 
     if (!date || isNaN(amount) || amount <= 0 || !description) return alert('Please fill all fields with valid values');
     
-    const { error } = await supabase.from('expenses').insert([{ date, category, amount, description, user: currentUser }]);
+    const { error } = await supabase.from('expenses').insert([{ date, category, amount, description, user: currentUser.email }]);
     if (error) return alert('Error adding expense: ' + error.message);
 
     document.getElementById('expenseAmount').value = '';
